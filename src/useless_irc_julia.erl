@@ -48,8 +48,13 @@ mandelbrot_api_request(Method,Url,UrlEncoding,QueryStr) ->
           when 200 =< Code andalso Code < 300 ->
             {_, JsonBody} = mochijson2:decode(Body),
             {ok, JsonBody};
+        {ok, {{_HttpVer, Code, _Msg}, _Headers, Body}} ->
+            {_, JsonBody} = mochijson2:decode(Body),
+            io:format("~p:Request to Mandelbrot failed: ~p~n",
+                      [Code,JsonBody]),
+            {failed};
         Failed ->
-            io:format("Failed request to Mandelbrot~p~n",[Failed]),
+            io:format("Request to Mandelbrot failed ~p~n",[Failed]),
             {failed}
     end.
 
@@ -140,12 +145,12 @@ handle_info({run, CommandToRun, Chan, User, FromPid},
             #state{pending=Pending} = State) ->
     case lists:keyfind(User,1,Pending) of
         %% check that user could be one of the active sessions
-        {_, _, _, Worker} ->
+        {_, Chan, _, Worker} ->
             %% try not accept another command if have one outstanding for that
             %% same user
             Worker ! {cmd, CommandToRun},
             {noreply, State};
-        false ->
+        _ ->
             case length(Pending) >= ?MAX_SESSIONS of
                 true ->
                     {reply, busy, State};
