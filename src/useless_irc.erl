@@ -80,17 +80,25 @@ handle_info({tcp, _Socket, Msg}, State) ->
     {noreply, State};
 
 handle_info({cmd_resp, User, Chan, Result}, State) when Chan =:= "" ->
-    %% use string:join here with spaces
-    gen_tcp:send(State#state.sock,
-                 string:join(["PRIVMSG",User,":" ++ Result ++ ?CRLF]," ")),
+    [gen_tcp:send(State#state.sock,
+                  string:join(["PRIVMSG",User,":" ++ Line ++ ?CRLF]," ")) ||
+     Line <- string:tokens(Result,"\n")],
     {noreply, State};
 
 handle_info({cmd_resp, _User, Chan, Result}, State) ->
-    gen_tcp:send(State#state.sock,
-                 string:join(["PRIVMSG",Chan,":" ++ Result ++ ?CRLF]," ")),
+    [gen_tcp:send(State#state.sock,
+                  string:join(["PRIVMSG",Chan,":" ++ Line ++ ?CRLF]," ")) ||
+     Line <- string:tokens(Result,"\n")],
     {noreply, State};
 
-handle_info({cmd_run_failed, _User}, State) ->
+handle_info({cmd_run_failed, User, Chan, ResponseMsg}, State) when Chan =:= "" ->
+    gen_tcp:send(State#state.sock,
+                 string:join(["PRIVMSG",User,":" ++ ResponseMsg ++ ?CRLF]," ")),
+    {noreply, State};
+
+handle_info({cmd_run_failed, _User, Chan, ResponseMsg}, State) ->
+    gen_tcp:send(State#state.sock,
+                 string:join(["PRIVMSG",Chan,":" ++ ResponseMsg ++ ?CRLF]," ")),
     {noreply, State};
 
 handle_info(Msg, State) ->

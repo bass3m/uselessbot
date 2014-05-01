@@ -68,6 +68,7 @@ create_julia_session() ->
     end.
 
 check_julia_result(ResultJsonBody) ->
+    %% this needs better errors
     case proplists:lookup(<<"value">>,ResultJsonBody) of
         {_, Result} -> {result, binary_to_list(Result)};
         _ -> {failed, binary_to_list(proplists:get_value(<<"error">>,
@@ -186,7 +187,9 @@ handle_info({cmd_run_failed, User, _Id}, #state{pending=Pending} = State) ->
                    {User, Chan, From, _Worker} ->
                        io:format("Cmd run failed for User ~p Chan ~p~n",
                                  [User,Chan]),
-                       From ! {cmd_run_failed, User},
+                       Response = "Sorry, julia service is not available at this moment",
+                       % send response back to irc server
+                       From ! {cmd_run_failed, User, Chan, Response},
                        #state{pending = lists:keydelete(User,1,Pending)}
     end,
     {noreply, NewState};
