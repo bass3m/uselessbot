@@ -52,7 +52,7 @@ mandelbrot_api_request(Method,Url,UrlEncoding,QueryStr) ->
             {_, JsonBody} = mochijson2:decode(Body),
                 io:format("~p:Request to Mandelbrot failed: ~p~n",
                           [Code,JsonBody]),
-            {terminate, Code ++ ": Request failed"};
+            {terminate, erlang:integer_to_list(Code) ++ ": Request failed"};
         Failed ->
             io:format("Request to Mandelbrot failed ~p~n",[Failed]),
             {terminate, "Request failed"}
@@ -110,13 +110,16 @@ run_julia_cmd(Cmd,User,State = #worker_state{id=Id,user=User,
     case execute_julia_cmd(Id,Cmd) of
         {result, Result} ->
             ParentPid ! {cmd_resp, User, Id, Result},
-            run_julia_run(State#worker_state{id = Id});
+            %% loop again
+            run_julia_run(State);
         {failed, FailReason} ->
             %% display this back sice cmd just failed
-            ParentPid ! {cmd_run_failed, User, Id, FailReason};
+            ParentPid ! {cmd_run_failed, User, Id, FailReason},
+            %% loop again
+            run_julia_run(State);
         {terminate, _Error} ->
             delete_julia_session(Id),
-            ParentPid ! {cmd_run_failed, User, Id,
+            ParentPid ! {cmd_run_terminate, User, Id,
                         "Sorry, your request failed"}
     end.
 
@@ -129,39 +132,13 @@ run_julia_run(State = #worker_state{user=User,parent=ParentPid}) ->
                     % tell parent that we accepted the command
                     ParentPid ! {cmd_resp, User, Id, "Working..."},
                     run_julia_cmd(Cmd,User,State#worker_state{id = Id});
-                    % run the command
-                    %case execute_julia_cmd(Id,Cmd) of
-                        %{result, Result} ->
-                            %ParentPid ! {cmd_resp, User, Id, Result},
-                            %run_julia_run(State#worker_state{id = Id});
-                        %{failed, FailReason} ->
-                            %%% display this back sice cmd just failed
-                            %ParentPid ! {cmd_run_failed, User, Id, FailReason};
-                        %{terminate, _Error} ->
-                            %delete_julia_session(Id),
-                            %ParentPid ! {cmd_run_failed, User, Id,
-                                        %"Sorry, your request failed"}
-                    %end;
                 _DarwinLost ->
-                    ParentPid ! {cmd_run_failed, User, no_id,
+                    ParentPid ! {cmd_run_terminate, User, no_id,
                                 string:join(["Sorry, your command",Cmd,"failed"],
                                 " ")}
             end;
         {cmd, Cmd} ->
-            %Id = State#worker_state.id,
             run_julia_cmd(Cmd,User,State)
-            %case execute_julia_cmd(Id,Cmd) of
-                %{result, Result} ->
-                    %ParentPid ! {cmd_resp, User, Id, Result},
-                    %run_julia_run(State);
-                %{failed, FailReason} ->
-                    %ParentPid ! {cmd_run_failed, User, Id, FailReason};
-                %{terminate, _Error} ->
-                    %delete_julia_session(Id),
-                    %ParentPid ! {cmd_run_failed, User, Id,
-                                 %string:join(["Sorry, your request",Cmd,"failed"],
-                                 %" ")}
-            %end
     after ?SESSION_TIMEOUT -> %% period of inactivity
         Id = State#worker_state.id,
         delete_julia_session(Id),
@@ -214,19 +191,22 @@ handle_info({cmd_resp, User, _Id, Result}, #state{pending=Pending} = State) ->
     end,
     {noreply, State};
 
-handle_info({cmd_run_failed, User, _Id, Failure}, #state{pending=Pending} = State) ->
+handle_info({CmdFailMsg, User, _Id, Failure}, #state{pending=Pending} = State) ->
     % when get response, now we have to send that response back
     NewState = case lists:keyfind(User,1,Pending) of
-                   false ->
-                       io:format("User ~p Not found~n",
-                                 [User]),
-                       State;
                    {User, Chan, From, _Worker} ->
                        io:format("Cmd run failed for User ~p Chan ~p~n",
                                  [User,Chan]),
                        % send response back to irc server
                        From ! {cmd_run_failed, User, Chan, Failure},
-                       #state{pending = lists:keydelete(User,1,Pending)}
+                       case CmdFailMsg of
+                           cmd_run_failed ->
+                               State;
+                           cmd_run_terminate ->
+                                #state{pending = lists:keydelete(User,1,Pending)}
+                       end;
+                   false ->
+                       State
     end,
     {noreply, NewState};
 
