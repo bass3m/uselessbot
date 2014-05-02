@@ -11,7 +11,7 @@
 -define(SERVER, ?MODULE).
 -define(JULIAPREFIX,"julia").
 -define(TIMEOUT,3000).
--define(SESSION_TIMEOUT,120000).
+-define(SESSION_TIMEOUT,30000).
 -define(MAX_SESSIONS,3).
 -define(MANDELBROT,"http://localhost:8080").
 
@@ -50,12 +50,12 @@ mandelbrot_api_request(Method,Url,UrlEncoding,QueryStr) ->
             {ok, JsonBody};
         {ok, {{_HttpVer, Code, _Msg}, _Headers, Body}} ->
             {_, JsonBody} = mochijson2:decode(Body),
-            io:format("~p:Request to Mandelbrot failed: ~p~n",
-                      [Code,JsonBody]),
-            {failed};
+                io:format("~p:Request to Mandelbrot failed: ~p~n",
+                          [Code,JsonBody]),
+            {terminate, Code ++ ": Request failed"};
         Failed ->
             io:format("Request to Mandelbrot failed ~p~n",[Failed]),
-            {failed}
+            {terminate, "Request failed"}
     end.
 
 create_julia_session() ->
@@ -64,15 +64,24 @@ create_julia_session() ->
             Id = binary_to_list(proplists:get_value(<<"sid">>,JsonBody)),
             io:format("Got a session ~p~n",[Id]),
             {created, Id};
-        {failed} -> {failed}
+        Errored -> Errored
+    end.
+
+check_julia_error(ResultJsonBody) ->
+    case lists:keyfind(<<"error">>,1,ResultJsonBody) of
+        {_, Err} when erlang:is_integer(Err) ->
+            {terminate, erlang:integer_to_list(Err)};
+        {_, Err} when erlang:is_binary(Err) ->
+            {failed, binary_to_list(Err)};
+        false ->
+            io:format("Unknown Mandelbrot Err ~p~n",[ResultJsonBody]),
+            {terminate, "Unknown Mandelbrot Error"}
     end.
 
 check_julia_result(ResultJsonBody) ->
-    %% this needs better errors
-    case proplists:lookup(<<"value">>,ResultJsonBody) of
+    case lists:keyfind(<<"value">>,1,ResultJsonBody) of
         {_, Result} -> {result, binary_to_list(Result)};
-        _ -> {failed, binary_to_list(proplists:get_value(<<"error">>,
-                                                         ResultJsonBody))}
+        false -> check_julia_error(ResultJsonBody)
     end.
 
 execute_julia_cmd(Id,Cmd) ->
@@ -81,12 +90,8 @@ execute_julia_cmd(Id,Cmd) ->
     case mandelbrot_api_request(post,?MANDELBROT ++ "/references",
                                 "application/x-www-form-urlencoded",QueryStr) of
         {ok, JsonBody} ->
-            %% extract the result in val
-            {_, Result} = check_julia_result(JsonBody),
-            io:format("Got the result ~p~n",[Result]),
-            {result, Result};
-        {failed} ->
-            {failed}
+            check_julia_result(JsonBody);
+        Errored -> Errored
     end.
 
 delete_julia_session(Id) when Id =:= "" ->
@@ -99,33 +104,65 @@ delete_julia_session(Id) ->
     io:format("Deleted session ~p~n",[Id]),
     {deleted, Id}.
 
+run_julia_cmd(Cmd,User,State = #worker_state{id=Id,user=User,
+                                             parent=ParentPid}) ->
+    % run the command
+    case execute_julia_cmd(Id,Cmd) of
+        {result, Result} ->
+            ParentPid ! {cmd_resp, User, Id, Result},
+            run_julia_run(State#worker_state{id = Id});
+        {failed, FailReason} ->
+            %% display this back sice cmd just failed
+            ParentPid ! {cmd_run_failed, User, Id, FailReason};
+        {terminate, _Error} ->
+            delete_julia_session(Id),
+            ParentPid ! {cmd_run_failed, User, Id,
+                        "Sorry, your request failed"}
+    end.
+
 %% ParentPid is the gen_server which spawned this worker process
 run_julia_run(State = #worker_state{user=User,parent=ParentPid}) ->
     receive
         {new_cmd, Cmd} ->
             case create_julia_session() of
                 {created, Id} ->
+                    % tell parent that we accepted the command
+                    ParentPid ! {cmd_resp, User, Id, "Working..."},
+                    run_julia_cmd(Cmd,User,State#worker_state{id = Id});
                     % run the command
-                    case execute_julia_cmd(Id,Cmd) of
-                        {result, Result} ->
-                            ParentPid ! {cmd_resp, User, Id, Result},
-                            run_julia_run(State#worker_state{id = Id});
-                        {failed} ->
-                            ParentPid ! {cmd_run_failed, User, Id}
-                    end;
-                {failed} ->
-                    ParentPid ! {cmd_run_failed, User, no_id}
+                    %case execute_julia_cmd(Id,Cmd) of
+                        %{result, Result} ->
+                            %ParentPid ! {cmd_resp, User, Id, Result},
+                            %run_julia_run(State#worker_state{id = Id});
+                        %{failed, FailReason} ->
+                            %%% display this back sice cmd just failed
+                            %ParentPid ! {cmd_run_failed, User, Id, FailReason};
+                        %{terminate, _Error} ->
+                            %delete_julia_session(Id),
+                            %ParentPid ! {cmd_run_failed, User, Id,
+                                        %"Sorry, your request failed"}
+                    %end;
+                _DarwinLost ->
+                    ParentPid ! {cmd_run_failed, User, no_id,
+                                string:join(["Sorry, your command",Cmd,"failed"],
+                                " ")}
             end;
         {cmd, Cmd} ->
-            Id = State#worker_state.id,
-            case execute_julia_cmd(Id,Cmd) of
-                {result, Result} ->
-                    ParentPid ! {cmd_resp, User, Id, Result},
-                    run_julia_run(State);
-                {failed} ->
-                    ParentPid ! {cmd_run_failed, User, Id}
-            end
-    after ?SESSION_TIMEOUT -> %% 2 minutes of inactivity
+            %Id = State#worker_state.id,
+            run_julia_cmd(Cmd,User,State)
+            %case execute_julia_cmd(Id,Cmd) of
+                %{result, Result} ->
+                    %ParentPid ! {cmd_resp, User, Id, Result},
+                    %run_julia_run(State);
+                %{failed, FailReason} ->
+                    %ParentPid ! {cmd_run_failed, User, Id, FailReason};
+                %{terminate, _Error} ->
+                    %delete_julia_session(Id),
+                    %ParentPid ! {cmd_run_failed, User, Id,
+                                 %string:join(["Sorry, your request",Cmd,"failed"],
+                                 %" ")}
+            %end
+    after ?SESSION_TIMEOUT -> %% period of inactivity
         Id = State#worker_state.id,
         delete_julia_session(Id),
         ParentPid ! {timeout, User}
@@ -177,7 +214,7 @@ handle_info({cmd_resp, User, _Id, Result}, #state{pending=Pending} = State) ->
     end,
     {noreply, State};
 
-handle_info({cmd_run_failed, User, _Id}, #state{pending=Pending} = State) ->
+handle_info({cmd_run_failed, User, _Id, Failure}, #state{pending=Pending} = State) ->
     % when get response, now we have to send that response back
     NewState = case lists:keyfind(User,1,Pending) of
                    false ->
@@ -187,9 +224,8 @@ handle_info({cmd_run_failed, User, _Id}, #state{pending=Pending} = State) ->
                    {User, Chan, From, _Worker} ->
                        io:format("Cmd run failed for User ~p Chan ~p~n",
                                  [User,Chan]),
-                       Response = "Sorry, julia service is not available at this moment",
                        % send response back to irc server
-                       From ! {cmd_run_failed, User, Chan, Response},
+                       From ! {cmd_run_failed, User, Chan, Failure},
                        #state{pending = lists:keydelete(User,1,Pending)}
     end,
     {noreply, NewState};
