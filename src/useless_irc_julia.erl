@@ -98,11 +98,18 @@ delete_julia_session(Id) when Id =:= "" ->
     ok;
 
 delete_julia_session(Id) ->
-    {ok, JsonBody} = mandelbrot_api_request(delete,
-                                            ?MANDELBROT ++ "/sessions/" ++ Id),
-    Id = binary_to_list(proplists:get_value(<<"sid">>,JsonBody)),
-    io:format("Deleted session ~p~n",[Id]),
-    {deleted, Id}.
+    case mandelbrot_api_request(delete,
+                                ?MANDELBROT ++ "/sessions/" ++ Id) of
+        {ok, JsonBody} ->
+            Id = binary_to_list(proplists:get_value(<<"sid">>,JsonBody)),
+            io:format("Deleted session ~p~n",[Id]),
+            {deleted, Id};
+        Err ->
+            io:format("Failed to delete session ~p Err ~p~n",
+                      [Id,Err]),
+            error
+    end.
+
 
 run_julia_cmd(Cmd,User,State = #worker_state{id=Id,user=User,
                                              parent=ParentPid}) ->
