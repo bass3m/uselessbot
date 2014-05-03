@@ -33,7 +33,7 @@ init([]) ->
     useless_irc_services:register_service(julia, ?JULIAPREFIX, self(), node(), ?SERVER),
     {ok, #state{}}.
 
-handle_call({num_pending}, _From, State) ->
+handle_call(num_pending, _From, State) ->
     {reply, length(State#state.pending), State};
 
 handle_call(stop, _From, State) ->
