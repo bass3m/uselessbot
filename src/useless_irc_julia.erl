@@ -1,7 +1,5 @@
 -module(useless_irc_julia).
 
-%% this should be a supervisor somehow which each pending
-%% session as a worker
 -behavior(gen_server).
 -export([start/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
