@@ -190,6 +190,11 @@
                           "Stimpy-drool",
                           "poopy",
                           "poop",
+                          "dookie",
+                          "big meaty chud",
+                          "fudge dragon",
+                          "chocolate hotdog",
+                          "mud monkey",
                           "craptacular carpet droppings",
                           "jizzum",
                           "cold sores",
@@ -204,6 +209,7 @@ start() ->
 stop() -> gen_server:call(?SERVER, stop).
 
 init([]) ->
+    random:seed(now()),
     %% register our insulting service
     useless_irc_services:register_service(insults,
                                           ?INSULTPREFIX,
@@ -211,11 +217,8 @@ init([]) ->
                                           ?SERVER),
     {ok, #insults{}}.
 
-
 % for testing purposes
 handle_call(insult, _From, State) ->
-    %% do the insult here
-    %% it should be command, we need to define the protocol,
     %% we also need to respond to a help message, for each plugin to define
     %% it's own help
     {reply, "Insult", State};
