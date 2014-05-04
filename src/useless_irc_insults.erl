@@ -191,10 +191,10 @@
                           "poopy",
                           "poop",
                           "dookie",
-                          "big meaty chud",
-                          "fudge dragon",
-                          "chocolate hotdog",
-                          "mud monkey",
+                          "big meaty chuds",
+                          "fudge dragons",
+                          "chocolate hotdogs",
+                          "mud monkeys",
                           "craptacular carpet droppings",
                           "jizzum",
                           "cold sores",
@@ -236,11 +236,11 @@ unique_nums(Len,N1,N2) when N1 =:= N2 ->
 unique_nums(_Len,N1,N2) ->
     {N1,N2}.
 
-get_insult_start([V | _] = _Adj1) when V =:= "a" orelse
-                                       V =:= "i" orelse
-                                       V =:= "u" orelse
-                                       V =:= "o" orelse
-                                       V =:= "e" ->
+get_insult_start([V | _] = _Adj1) when V =:= $a orelse
+                                       V =:= $i orelse
+                                       V =:= $u orelse
+                                       V =:= $o orelse
+                                       V =:= $e ->
     "an";
 
 get_insult_start(_Adj1) ->
