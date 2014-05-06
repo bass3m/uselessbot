@@ -217,12 +217,6 @@ init([]) ->
                                           ?SERVER),
     {ok, #insults{}}.
 
-% for testing purposes
-handle_call(insult, _From, State) ->
-    %% we also need to respond to a help message, for each plugin to define
-    %% it's own help
-    {reply, "Insult", State};
-
 handle_call(stop, _From, State) ->
             {stop, normal, stopped, State}.
 

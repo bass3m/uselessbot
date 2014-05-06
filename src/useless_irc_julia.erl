@@ -28,7 +28,8 @@ get_num_pending() ->
 init([]) ->
     inets:start(), % to start using httpc client
     %% register our julia service
-    useless_irc_services:register_service(julia, ?JULIAPREFIX, self(), node(), ?SERVER),
+    useless_irc_services:register_service(julia, ?JULIAPREFIX,
+                                          self(), node(), ?SERVER),
     {ok, #state{}}.
 
 handle_call(num_pending, _From, State) ->

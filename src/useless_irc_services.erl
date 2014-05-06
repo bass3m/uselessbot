@@ -23,7 +23,6 @@ get_service(Prefix) ->
 get_all_services() ->
     gen_server:call(?SERVER, get_all).
 
-
 %% Client APIs
 %% all Synchronous calls right now
 start() ->
