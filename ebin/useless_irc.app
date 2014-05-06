@@ -1,0 +1,21 @@
+%% -*- mode: Erlang; fill-column: 75; comment-column: 50; -*-
+{application, useless_irc,
+ [{description, "A minimal IRC bot, supports plugins"},
+  {vsn, "0.1.0"},
+  {modules, [useless_irc,
+             useless_irc_insults,
+             useless_irc_julia,
+             useless_irc_parser,
+             useless_irc_services,
+             useless_irc_weather,
+             mochijson2]},
+  {registered, [useless_irc_sup]},
+  {applications, [kernel, stdlib]},
+  {mod, {useless_irc_app, []}},
+  {env,
+    [{server, "127.0.0.1"},
+     {port, 6667},
+     {channel, "#testchan"},
+     {nick, "#testnick"},
+     {weather_token, "b7281df53ad8cb5f"}]}
+ ]}.
