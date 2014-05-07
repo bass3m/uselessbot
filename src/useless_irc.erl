@@ -1,12 +1,13 @@
 -module(useless_irc).
 -behavior(gen_server).
--export([start/2, login/1, join/1, stop/0]).
+%-export([start/2, login/1, join/1, stop/0]).
+-export([start/0, login/1, join/1, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -compile(export_all). % replace with export later
 
 -define(SERVER, ?MODULE).
--define(REALNAME, "Julia MandelBot"). % XXX shoud change this really
+-define(REALNAME, "UselessBot").
 -define(CRLF, "\r\n").
 
 %% should be map that contains an an array of plugin maps
@@ -14,8 +15,8 @@
 
 %% Client APIs
 %% all Synchronous calls right now
-start(Server, Port) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Server, Port], []).
+start() ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 stop() -> gen_server:call(?SERVER, stop).
 
@@ -26,7 +27,9 @@ join(Channel) ->
     gen_server:call(?SERVER, {join_channel, Channel}).
 
 %% Server APIs
-init([Server, Port]) ->
+init([]) ->
+    {ok, Server} = application:get_env(server),
+    {ok, Port} = application:get_env(port),
     Options = [binary, {active, true},
                {packet, line}, {keepalive, true}],
     {ok,Socket} = gen_tcp:connect(Server,Port,Options),
