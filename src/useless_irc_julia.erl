@@ -8,7 +8,7 @@
 
 -define(SERVER, ?MODULE).
 -define(JULIAPREFIX,"julia").
--define(TIMEOUT,3000).
+-define(TIMEOUT,15000).
 -define(SESSION_TIMEOUT,30000).
 -define(MAX_SESSIONS,3).
 -define(MANDELBROT,"http://localhost:8080").
@@ -42,7 +42,8 @@ mandelbrot_api_request(Method,Url) ->
     mandelbrot_api_request(Method,Url,"","").
 
 mandelbrot_api_request(Method,Url,UrlEncoding,QueryStr) ->
-    case httpc:request(Method,{Url,[],UrlEncoding,QueryStr},[],[]) of
+    case httpc:request(Method,{Url,[],UrlEncoding,QueryStr},
+                       [{timeout,?TIMEOUT}],[]) of
         {ok, {{_HttpVer, Code, _Msg}, _Headers, Body}}
           when 200 =< Code andalso Code < 300 ->
             {_, JsonBody} = mochijson2:decode(Body),
