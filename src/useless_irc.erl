@@ -1,6 +1,5 @@
 -module(useless_irc).
 -behavior(gen_server).
-%-export([start/2, login/1, join/1, stop/0]).
 -export([start/0, login/1, join/1, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -57,27 +56,58 @@ terminate(_Reason, _State) -> ok.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
+process_prefix("help",_Request,Chan,FromNick,State) ->
+    ReplyTo = case Chan of
+                  "" -> FromNick;
+                  _ -> Chan
+              end,
+    % call get_all to say that these are current available plugins
+    AvailServices = useless_irc_services:get_all_services(),
+    [gen_tcp:send(State#state.sock,
+                  string:join(["PRIVMSG",ReplyTo,
+                               string:join([":Plugin:",
+                                            atom_to_list(Service),
+                                            "with prefix :",
+                                            Prefix,?CRLF]," ")
+                              ], " ")) || {Service, Prefix} <- AvailServices];
+
+process_prefix(Prefix,Request,Chan,FromNick,_State) ->
+    %% find service that matches the prefix
+    case useless_irc_services:get_service(Prefix) of
+        %% for now, ignore the node, and just use the pid
+        {_, _, {ServicePid, _, _Mod}} ->
+            ServicePid ! {run, Request, Chan, FromNick, self()};
+        not_found ->
+            io:format("Ignoring Prefix ~p Request ~p Chan ~p FromNick ~p~n",
+                      [Prefix,Request,Chan,FromNick]),
+            ignored % just log here
+    end.
+
+% might be nice if service is invoked with no args etc..
+% to return a response with the help
+handle_info({cmd_resp, User, Chan, Result}, State) when Chan =:= "" ->
+    [gen_tcp:send(State#state.sock,
+                  string:join(["PRIVMSG",User,":" ++ Line ++ ?CRLF]," ")) ||
+     Line <- string:tokens(Result,"\n")],
+    {noreply, State};
+
 handle_info({tcp_closed, Reason}, State) ->
     io:format("Tcp closed with reason: ~p~n",[Reason]),
     {noreply, State};
 
 %% TODO use ref as a way to identify the response
 handle_info({tcp, _Socket, Msg}, State) ->
+    % maybe parse msg can find the help
     case useless_irc_parser:parse_msg(Msg) of
         {response, Response} ->
             io:format("Respond to server with ~p~n",[Response]),
             gen_tcp:send(State#state.sock, Response ++ ?CRLF);
         {msg, FromNick, [ToNick | Privmsg]} when ToNick =:= State#state.nick ->
-            [Service|Request] = useless_irc_parser:process_private_msg(Privmsg),
-            %% find service that matches the prefix
-            {_, _, {ServicePid, _, _Mod}} = useless_irc_services:get_service(Service),
-            ServicePid ! {run, Request, "", FromNick, self()};
+            [Prefix|Request] = useless_irc_parser:process_private_msg(Privmsg),
+            process_prefix(Prefix,Request,"",FromNick,State);
         {msg, FromNick, [Chan | Chanmsg]} when Chan =:= State#state.channel ->
-            [Service|Request] = useless_irc_parser:process_channel_msg(Chanmsg),
-            %% for now, ignore the node, and just use the pid
-            {_, _, {ServicePid, _, _Mod}} = useless_irc_services:get_service(Service),
-            %% from nick might be channel here for the response XXX
-            ServicePid ! {run, Request, Chan, FromNick, self()};
+            [Prefix|Request] = useless_irc_parser:process_channel_msg(Chanmsg),
+            process_prefix(Prefix,Request,Chan,FromNick,State);
         _ -> ignored
     end,
     {noreply, State};
