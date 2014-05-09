@@ -50,18 +50,11 @@ process_cmd(["PING" | Server]) ->
 process_cmd(_Command) ->
     ignored.
 
-process_channel_msg(Msg) ->
-    case re:run(hd(Msg),?BOTPREFIX) of
-        {match,_} -> process_bot_msg(string:join(Msg," "));
-        _ -> io:format("Channel Msg ignoring ~p~n",[Msg]),
-             ""
-    end.
+process_msg([?BOTPREFIX ++ Service | Msg]) ->
+    [Service | string:strip(string:join(Msg," "))];
 
-process_bot_msg(Str) ->
-    %% remove bot prefix, XXX should use pattern matching on strings instead of re
-    PrefixLessStr = string:strip(re:replace(Str,?BOTPREFIX,"",[{return, list}])),
-    Tokenized = string:tokens(PrefixLessStr," "),
-    [hd(Tokenized) | string:join(tl(Tokenized)," ")].
+process_msg(_Msg) ->
+     [""].
 
 is_ctcp([Msg]) when is_list(Msg) ->
     [hd(Msg)] =:= ":" andalso hd(tl(Msg)) =:= 1 andalso lists:last(Msg) =:= 1;
@@ -72,12 +65,7 @@ is_ctcp(_) ->
 process_private_msg(Msg) ->
     Str = string:join(Msg," "),
     case is_ctcp(Msg) of
-       %% ignore ctcp messages
-       true -> io:format("CTCP Msg ignored ~p~n",[Str]);
-       false -> case re:run(hd(Msg),?BOTPREFIX) of
-                    {match,_} -> process_bot_msg(Str);
-                    _ -> io:format("Private Msg ignoring ~p~n",[Msg]),
-                         ""
-                end
+        %% ignore ctcp messages
+        true -> io:format("CTCP Msg ignored ~p~n",[Str]);
+        false -> process_msg(Msg)
     end.
-
