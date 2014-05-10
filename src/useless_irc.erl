@@ -106,7 +106,7 @@ handle_info({tcp, _Socket, Msg}, State) ->
             [Prefix|Request] = useless_irc_parser:process_private_msg(Privmsg),
             process_prefix(Prefix,Request,"",FromNick,State);
         {msg, FromNick, [Chan | Chanmsg]} when Chan =:= State#state.channel ->
-            [Prefix|Request] = useless_irc_parser:process_channel_msg(Chanmsg),
+            [Prefix|Request] = useless_irc_parser:process_msg(Chanmsg),
             process_prefix(Prefix,Request,Chan,FromNick,State);
         _ -> ignored
     end,
