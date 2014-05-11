@@ -134,14 +134,22 @@ conditions(Location) ->
                         "")
     end.
 
+help(_) ->
+    "weather [forecast|conditions|astro|help] location".
+
+
+parse_location([]) ->
+    "95129";
 parse_location([Location]) ->
     Location;
 parse_location([F,S|_]) ->
     string:join([F,S],"/").
 
+parse_weather_request([]) ->
+    help([]);
 parse_weather_request(Request) ->
     [Action | ReqTokens] = string:tokens(Request," "),
-    case lists:member(list_to_atom(Action),[forecast,astro,conditions]) of
+    case lists:member(list_to_atom(Action),[forecast,astro,conditions,help]) of
         true ->
             apply(?SERVER,list_to_atom(Action),[parse_location(ReqTokens)]);
         false ->
