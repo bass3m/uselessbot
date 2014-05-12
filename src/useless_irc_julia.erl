@@ -163,6 +163,14 @@ handle_info({timeout, User}, #state{pending=Pending} = _State) ->
     NewState = #state{pending = lists:keydelete(User,1,Pending)},
     {noreply, NewState};
 
+handle_info({run, "help" ++ _, Chan, User, From}, State) ->
+    From ! {cmd_resp, User, Chan, "Please input a Julia expression"},
+    {noreply, State};
+
+handle_info({run, [], Chan, User, From}, State) ->
+    From ! {cmd_resp, User, Chan, "Got nothin'"},
+    {noreply, State};
+
 handle_info({run, CommandToRun, Chan, User, FromPid},
             #state{pending=Pending} = State) ->
     case lists:keyfind(User,1,Pending) of
