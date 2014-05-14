@@ -51,10 +51,13 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 terminate(_Reason, _State) -> ok.
 
-%% add something for help, no args
-%%
 ask_question(#answers{answers = Answers} = _State) ->
     lists:nth(random:uniform(length(Answers)),Answers).
+
+handle_info({run, Request, Chan, User, From}, State)
+  when Request =:= "" orelse Request =:= "help" ->
+    From ! {cmd_resp, User, Chan, "Ask me a question."},
+    {noreply, State};
 
 handle_info({run, _Request, Chan, User, From}, State) ->
     From ! {cmd_resp, User, Chan, ask_question(State)},
