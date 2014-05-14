@@ -24,7 +24,11 @@ init([]) ->
                     permanent, 2000, worker, [useless_irc_insults]},
     IrcBotWeather = {useless_irc_weather, {useless_irc_weather, start, []},
                     permanent, 2000, worker, [useless_irc_weather]},
-    Children = [IrcBotServer,IrcBotServices,IrcBotJulia,IrcBotInsults,IrcBotWeather],
+    IrcBot8Ball = {useless_irc_8ball, {useless_irc_8ball, start, []},
+                    permanent, 2000, worker, [useless_irc_8ball]},
+    Children = [IrcBotServer,IrcBotServices,
+                IrcBotJulia,IrcBotInsults,
+                IrcBotWeather,IrcBot8Ball],
     RestartStrategy = {one_for_one, 0, 1},
     {ok, {RestartStrategy, Children}}.
 
