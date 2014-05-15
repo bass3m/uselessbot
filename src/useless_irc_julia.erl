@@ -139,7 +139,7 @@ run_julia_run(State = #worker_state{user=User,parent=ParentPid}) ->
                     % tell parent that we accepted the command
                     ParentPid ! {cmd_resp, User, Id, "Working..."},
                     run_julia_cmd(Cmd,User,State#worker_state{id = Id});
-                _DarwinLost ->
+                _Darwin ->
                     ParentPid ! {cmd_run_terminate, User, no_id,
                                 string:join(["Sorry, your command",Cmd,"failed"],
                                 " ")}
