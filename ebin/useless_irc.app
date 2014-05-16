@@ -8,6 +8,8 @@
              useless_irc_parser,
              useless_irc_services,
              useless_irc_weather,
+             useless_irc_8ball,
+             useless_irc_timer,
              mochijson2]},
   {registered, [useless_irc_sup]},
   {applications, [kernel, stdlib]},
