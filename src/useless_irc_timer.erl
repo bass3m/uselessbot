@@ -8,7 +8,8 @@
 
 -define(SERVER, ?MODULE).
 -define(TIMERPREFIX,"timer").
--define(MAX_PENDING_TIMERS,10).
+-define(SECONDS_PER_MINUTE, 60).
+-define(SECONDS_PER_HOUR, 3600).
 
 -record(state, {pending = []}).
 -record(worker_state, {user, message, timer, parent}).
@@ -35,17 +36,20 @@ handle_cast(_Msg, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 
 run_timer(_State = #worker_state{user=User,parent=ParentPid,
-                                timer=Timer,message=Message}) ->
+                                 timer=Timer,message=Message}) ->
+    io:format("run_timer ~p~n",[Timer]),
     receive
     after Timer*1000 ->
         ParentPid ! {cmd_resp, User, "", Message}
-        %% have to delete timer from pending after it expires
+        %% TODO have to delete timer from pending after it expires
     end.
 
-validate_timer_requested([H,M,S] = Timer) when 0 =< H andalso H =< 23 andalso
-                                               0 =< M andalso M =< 59 andalso
-                                               0 =< S andalso S =< 59 ->
-    {ok, Timer};
+validate_timer_requested([H,M,S] = _Timer) when 0 =< H andalso H =< 23 andalso
+                                                0 =< M andalso M =< 59 andalso
+                                                0 =< S andalso S =< 59 ->
+    %% convert to secs
+    %io:format("Timer is ~p~n",[(?SECONDS_PER_HOUR * H) + (?SECONDS_PER_MINUTE * M) + S]),
+    {ok, (?SECONDS_PER_HOUR * H) + (?SECONDS_PER_MINUTE * M) + S};
 
 validate_timer_requested([_H,_M,_S]) ->
     {error, "Time specified is not within range"}.
@@ -67,7 +71,11 @@ handle_new_timer(Request) ->
         {error, Msg} ->
             {error, Msg};
         {ok, HMS, Msg} ->
-            {ok, validate_timer_requested(HMS), Msg}
+            case validate_timer_requested(HMS) of
+                {ok, TimerInSecs} ->
+                    {ok, TimerInSecs, Msg};
+                Err -> Err
+            end
     end.
 
 handle_info({run, Request, Chan, User, From}, State)
@@ -81,8 +89,7 @@ handle_info({run, Request, Chan, User, FromPid},
     case lists:keyfind(User,1,Pending) of
         %% check that user could be one of the active sessions
         {User, Chan, _, _Worker} ->
-            %% try not accept another command if have one outstanding for that
-            %% same user
+            %% do not accept another timer if have one outstanding for same user
             FromPid ! {cmd_resp, User, Chan, "You already have a timer running"},
             {noreply, State};
         _ ->
@@ -90,10 +97,11 @@ handle_info({run, Request, Chan, User, FromPid},
                 {error, Msg} ->
                     FromPid ! {cmd_resp, User, Chan, Msg},
                     {noreply, State};
-                {ok, _HMS, Msg} ->
+                {ok, TimerInSecs, Msg} ->
                     Worker = spawn_link(?MODULE, run_timer,
                                         [#worker_state{user = User,
-                                                       timer = 10, message = Msg,
+                                                       timer = TimerInSecs,
+                                                       message = Msg,
                                                        parent = self()}]),
                     NewState = #state{pending = [{User, FromPid, Worker} | Pending]},
                     {noreply, NewState}
