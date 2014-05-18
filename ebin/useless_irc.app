@@ -19,5 +19,5 @@
      {port, 6667},
      {channel, "#testchan"},
      {nick, "#testnick"},
-     {weather_token, "b7281df53ad8cb5f"}]}
+     {weather_token, "API_KEY"}]}
  ]}.
