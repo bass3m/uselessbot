@@ -37,24 +37,21 @@ terminate(_Reason, _State) -> ok.
 
 run_timer(_State = #worker_state{user=User,parent=ParentPid,
                                  timer=Timer,message=Message}) ->
-    io:format("run_timer ~p~n",[Timer]),
+    %io:format("run_timer for ~p~n",[Timer]),
     receive
     after Timer*1000 ->
         ParentPid ! {cmd_resp, User, "", Message}
-        %% TODO have to delete timer from pending after it expires
     end.
 
 validate_timer_requested([H,M,S] = _Timer) when 0 =< H andalso H =< 23 andalso
                                                 0 =< M andalso M =< 59 andalso
                                                 0 =< S andalso S =< 59 ->
     %% convert to secs
-    %io:format("Timer is ~p~n",[(?SECONDS_PER_HOUR * H) + (?SECONDS_PER_MINUTE * M) + S]),
     {ok, (?SECONDS_PER_HOUR * H) + (?SECONDS_PER_MINUTE * M) + S};
 
 validate_timer_requested([_H,_M,_S]) ->
     {error, "Time specified is not within range"}.
 
-%% have to make sure m 0,59 and secs the same
 parse_timer_request(Request) ->
     [RequestedTime | Msg] = string:tokens(Request," "),
     try
@@ -88,7 +85,7 @@ handle_info({run, Request, Chan, User, FromPid},
             #state{pending=Pending} = State) when Chan =:= ""->
     case lists:keyfind(User,1,Pending) of
         %% check that user could be one of the active sessions
-        {User, Chan, _, _Worker} ->
+        {User, _, _Worker} ->
             %% do not accept another timer if have one outstanding for same user
             FromPid ! {cmd_resp, User, Chan, "You already have a timer running"},
             {noreply, State};
@@ -114,15 +111,16 @@ handle_info({run, _Request, Chan, User, From}, State) ->
 
 handle_info({cmd_resp, User, _Id, Result}, #state{pending=Pending} = State) ->
     % when get response, now we have to send that response back to
-    case lists:keyfind(User,1,Pending) of
-        false ->
-            io:format("Not found New Cmd Resp ~p Result ~p State ~p~n",
-                      [User,Result,State]),
-            not_found;
-        {User, From, _Worker} ->
-            From ! {cmd_resp, User, "", Result}
+    NewState = case lists:keyfind(User,1,Pending) of
+                    false ->
+                        io:format("Not found New Cmd Resp ~p Result ~p State ~p~n",
+                                  [User,Result,State]),
+                        State;
+                    {User, From, _Worker} ->
+                        From ! {cmd_resp, User, "", Result},
+                        #state{pending = lists:keydelete(User,1,Pending)}
     end,
-    {noreply, State};
+    {noreply, NewState};
 
 handle_info(Msg, State) ->
     io:format("Unexpect Msg rcvd ~p~n",[Msg]),
