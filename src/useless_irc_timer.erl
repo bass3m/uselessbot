@@ -20,7 +20,6 @@ start() ->
 stop() -> gen_server:call(?SERVER, stop).
 
 init([]) ->
-    random:seed(now()),
     %% register our timer service
     useless_irc_services:register_service(timer,
                                           ?TIMERPREFIX,
@@ -80,9 +79,17 @@ handle_info({run, Request, Chan, User, From}, State)
     From ! {cmd_resp, User, Chan, "Set a timer in h:m:s format."},
     {noreply, State};
 
+%% TODO would be nice to display the timer val and msg
+handle_info({run, Request, Chan, User, From},
+            #state{pending = Pending} = State)
+  when Request =:= "list" ->
+    OutstandingTimers = ["Timer for user:" ++ U || {U,_,_} <- Pending],
+    From ! {cmd_resp, User, Chan, string:join(OutstandingTimers,"\n")},
+    {noreply, State};
+
 %% Request should look like h:m:s some message
 handle_info({run, Request, Chan, User, FromPid},
-            #state{pending=Pending} = State) when Chan =:= ""->
+            #state{pending = Pending} = State) when Chan =:= ""->
     case lists:keyfind(User,1,Pending) of
         %% check that user could be one of the active sessions
         {User, _, _Worker} ->
