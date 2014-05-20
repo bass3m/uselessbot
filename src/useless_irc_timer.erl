@@ -84,7 +84,11 @@ handle_info({run, Request, Chan, User, From},
             #state{pending = Pending} = State)
   when Request =:= "list" ->
     OutstandingTimers = ["Timer for user:" ++ U || {U,_,_} <- Pending],
-    From ! {cmd_resp, User, Chan, string:join(OutstandingTimers,"\n")},
+    Msg = case OutstandingTimers of
+              [] -> "No outstanding timers";
+              _ -> string:join(OutstandingTimers,"\n")
+          end,
+    From ! {cmd_resp, User, Chan, Msg},
     {noreply, State};
 
 %% Request should look like h:m:s some message
