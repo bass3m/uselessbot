@@ -83,7 +83,13 @@ handle_info({run, Request, Chan, User, From}, State)
 handle_info({run, Request, Chan, User, From},
             #state{pending = Pending} = State)
   when Request =:= "list" ->
-    OutstandingTimers = ["Timer for user:" ++ U || {U,_,_} <- Pending],
+    NowInSecs = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
+    OutstandingTimers = [string:join(["Timer for user:",U,
+                                      ". Duration",erlang:integer_to_list(T),
+                                      "secs. Started",
+                                       erlang:integer_to_list(NowInSecs -
+                                            calendar:datetime_to_gregorian_seconds(Started)),
+                                      "secs ago"]," ") || {U,_,_,Started,T} <- Pending],
     Msg = case OutstandingTimers of
               [] -> "No outstanding timers";
               _ -> string:join(OutstandingTimers,"\n")
@@ -96,7 +102,7 @@ handle_info({run, Request, Chan, User, FromPid},
             #state{pending = Pending} = State) when Chan =:= ""->
     case lists:keyfind(User,1,Pending) of
         %% check that user could be one of the active sessions
-        {User, _, _Worker} ->
+        {User, _, _Worker, _, _} ->
             %% do not accept another timer if have one outstanding for same user
             FromPid ! {cmd_resp, User, Chan, "You already have a timer running"},
             {noreply, State};
@@ -111,7 +117,11 @@ handle_info({run, Request, Chan, User, FromPid},
                                                        timer = TimerInSecs,
                                                        message = Msg,
                                                        parent = self()}]),
-                    NewState = #state{pending = [{User, FromPid, Worker} | Pending]},
+                    NewState = #state{pending = [{User,
+                                                  FromPid,
+                                                  Worker,
+                                                  calendar:local_time(),
+                                                  TimerInSecs} | Pending]},
                     {noreply, NewState}
             end
     end;
@@ -127,7 +137,7 @@ handle_info({cmd_resp, User, _Id, Result}, #state{pending=Pending} = State) ->
                         io:format("Not found New Cmd Resp ~p Result ~p State ~p~n",
                                   [User,Result,State]),
                         State;
-                    {User, From, _Worker} ->
+                    {User, From, _Worker, _StartTime, _Duration} ->
                         From ! {cmd_resp, User, "", Result},
                         #state{pending = lists:keydelete(User,1,Pending)}
     end,
