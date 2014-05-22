@@ -76,7 +76,11 @@ handle_new_timer(Request) ->
 
 handle_info({run, Request, Chan, User, From}, State)
   when Request =:= "" orelse Request =:= "help" ->
-    From ! {cmd_resp, User, Chan, "Set a timer in h:m:s format."},
+    From ! {cmd_resp, User, Chan,
+            string:join([?TIMERPREFIX,
+                         "hh:mm:ss <Message> : Set a timer for Message in h:m:s format.\n",
+                         ?TIMERPREFIX,
+                         "list : list current timers"]," ")},
     {noreply, State};
 
 %% TODO would be nice to display the timer val and msg
