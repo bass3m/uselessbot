@@ -1,4 +1,5 @@
 **[Quickstart](#quickstart)** |
+**[Configuration](#configuration)** |
 **[Plugins](#plugins)** |
 **[Adding plugins](#adding-plugins)**
 
@@ -18,10 +19,30 @@ An IRC bot that supports plugins. It was a project for learning Erlang. I'm sure
 	%% login as user test
 	> useless_irc:login("test").
 ```
+## Configuration
+
+The following variables are configurable (located in ebin/useless_irc.app):
+
+- IRC server ip address
+- IRC server port
+- IRC channel to join
+- IRC nick to use
+- you can add other configurations like tokens, keys etc..
+	
 
 ## Plugins
 
-TODO
+Command to the bot use a prefix of `,` (i will make that configurable as an environment variable).
+
+#### Weather plugin
+
+#### Insult plugin
+
+#### Magic 8 ball plugin
+
+#### Timer plugin
+
+#### Julia repl plugin
 
 ## Adding plugins
 
