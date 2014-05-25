@@ -3,8 +3,9 @@
 **[Plugins](#plugins)** |
 **[Adding plugins](#adding-plugins)**
 
-# uselessbot :
-==========
+# uselessbot
+------------
+
 
 An IRC bot that supports plugins. It was a project for learning Erlang. I'm sure the code is far from idiomatic Erlang, but it was tons of fun nonetheless.
 Each plugin can register itself with the prefix that is used to invoke it.
