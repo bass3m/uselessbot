@@ -34,15 +34,6 @@ The following variables are configurable (located in ebin/useless_irc.app):
 
 ## Plugins
 
-#### Registering a plugin
-Each plugin can register itself with a prefix that is used to invoke it.
-For example:
-
-```
-%% register our timer service
-useless_irc_services:register_service(timer,"timer",self(), node(),SERVER)
-```
-Registers plugin **timer** with a prefix of **"timer"** which can be invoked by `,timer`.
 
 #### Plugin help
 Commands to the bot use a prefix of `,` (i will make that configurable as an environment variable).
@@ -62,10 +53,33 @@ In your IRC client of choice, you can type `,help` and that will iterate over al
 
 #### Magic 8 ball plugin
 
+Ask the magic 8 ball a question by prefixing a question with `,8ball` followed by your question.
+For example:
+
+```
+%% in your IRC client ask the bot a question
+,8ball should i learn Elixir ?
+%% the magic 8 ball responds
+As I see it, yes.
+```
+
 #### Timer plugin
 
 #### Julia repl plugin
 
 ## Adding plugins
 
+Plugins are gen_servers that register with the bot. Plugins are required to implement a couple of messages in order to handle the input from the IRC client and forward the output back to the bot.
+
+#### Registering a plugin
+Each plugin can register itself with a prefix that is used to invoke it.
+For example:
+
+```
+%% register our timer service
+useless_irc_services:register_service(timer,"timer",self(), node(),SERVER)
+```
+Registers plugin **timer** with a prefix of **"timer"** which can be invoked by `,timer`.
+
+#### Plugin messages
 TODO
