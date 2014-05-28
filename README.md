@@ -51,6 +51,19 @@ In your IRC client of choice, you can type `,help` and that will iterate over al
 
 #### Insult plugin
 
+You can invoke the insult plugin in the channel or you can send the bot a privage message, in order to generate a fresh insult for your pleasure.
+
+```
+%% in your IRC client as nick testnick in channel
+,insult
+%% IRC bot will generate a fresh insult for you
+testnick is a lumpish thimbleful of fly-bitten craptacular carpet droppings
+%% You can send the bot a private message as well, uselessbot is bot nick in this example
+/msg uselessbot ,insult
+%% the bot will respond with 
+You are a low-quality accumulation of vain bat toenails
+```
+
 #### Magic 8 ball plugin
 
 Ask the magic 8 ball a question by prefixing a question with `,8ball` followed by your question.
