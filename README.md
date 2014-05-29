@@ -78,6 +78,16 @@ As I see it, yes.
 
 #### Timer plugin
 
+The timer plugin allows a user to set a timer for a time period expressed as `hh:mm:ss` followed by a reminder message. The bot will send a privage message to that user after the timer expires.
+
+```
+%% send a private message to the bot to set a timer for 10 secs 0:0:10
+%% and when the timer expires to remind me to 'wake me up'
+/msg test ,timer 0:0:10 wake me up
+%% after 10 seconds the bot messages the nick with the message
+wake me up
+```
+
 #### Julia repl plugin
 
 ## Adding plugins
