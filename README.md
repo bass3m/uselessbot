@@ -49,6 +49,7 @@ In your IRC client of choice, you can type `,help` and that will iterate over al
 
 #### Weather plugin
 
+
 #### Insult plugin
 
 You can invoke the insult plugin in the channel or you can send the bot a privage message, in order to generate a fresh insult for your pleasure.
@@ -89,6 +90,42 @@ wake me up
 ```
 
 #### Julia repl plugin
+
+The `Julia` plugin allows you to evaluate `Julia language` expressions. 
+Each user is assigned a session, the session allows the user to keep history of previous bindings and evaluated expressions until the session expires.
+Sessions expire due to lack of activity in a time period (currently 30 secs).
+ 
+Currently, the plugin allows a maximum of 3 concurrent sessions.
+
+```
+%% send the julia plugin a command
+nick> ,julia 1 + 1
+%% bot create a session
+bot> Working
+bot> 2
+%% bind a to 1:10
+nick> ,julia a = 1:10
+bot> 1:10
+%% now use a
+nick> ,julia sum(a)
+bot> 55
+%% multi-line output of squaring an vector
+nick> ,julia map(i->i*i,[1,2,3,4])
+nick> 4-element Array{Int64,1}:
+nick> 1
+nick> 4
+nick> 9
+nick> 16
+%% create a function
+nick> ,julia square(i) = i*i
+bot> square (generic function with 1 method)
+nick> ,julia map(square,[1,2,3,4])
+nick> 4-element Array{Int64,1}:
+nick> 1
+nick> 4
+nick> 9
+nick> 16
+```
 
 ## Adding plugins
 
