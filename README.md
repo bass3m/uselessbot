@@ -49,6 +49,15 @@ In your IRC client of choice, you can type `,help` and that will iterate over al
 
 #### Weather plugin
 
+Invoke the weather plugin by using `,weather` prefix. If you leave any arguments to the plugin the plugin will return you some help on how to use it as follows:
+
+```
+%% from your IRC client
+nick> ,weather
+bit> weather [forecast|conditions|astro|help] location
+```
+Invoking the plugin with help as the argument will give you the same output.
+
 
 #### Insult plugin
 
