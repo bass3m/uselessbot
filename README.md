@@ -58,6 +58,24 @@ bit> weather [forecast|conditions|astro|help] location
 ```
 Invoking the plugin with help as the argument will give you the same output.
 
+The weather plugin supports several different options for a given location (default is 95129 zipcode):
+
+- forecast: returns the current forecast
+
+	```
+	nick> ,weather forecast 95129
+	bot> Forecast for Sunday is Abundant sunshine. High 84F. Winds NW at 10 to 15 mph.
+	```
+- conditions: returns the weather conditions
+
+	```
+	nick> ,weather conditions 95129
+	bot> Last Updated on June 1, 8:35 AM PDT. Partly Cloudy. Temperature: 59.7 F (15.4 C). Precipitation today: 0.00 in (0 mm). Wind Calm
+	```
+
+- astro:
+
+
 
 #### Insult plugin
 
