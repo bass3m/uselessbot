@@ -73,7 +73,13 @@ The weather plugin supports several different options for a given location (defa
 	bot> Last Updated on June 1, 8:35 AM PDT. Partly Cloudy. Temperature: 59.7 F (15.4 C). Precipitation today: 0.00 in (0 mm). Wind Calm
 	```
 
-- astro:
+- astro: returns some astronomical data
+
+	```
+	nick> ,weather astro 95129
+	bot> Percentage of moon illuminated: 41, Age of moon: 7, Phase: Waxing Crescent, Sunrise: 6:08, Sunset: 20:01
+	```
+
 
 
 
