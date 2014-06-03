@@ -80,7 +80,11 @@ The weather plugin supports several different options for a given location (defa
 	bot> Percentage of moon illuminated: 41, Age of moon: 7, Phase: Waxing Crescent, Sunrise: 6:08, Sunset: 20:01
 	```
 
+##### Specifying the location
+The location can be specified in several ways:
 
+- using a zipcode : **95129**, **60651** 
+- a string such as `chicago`, `iowa city`. You might want to be more specific in case there are multiple matches, for example: `ca sunnyvale`
 
 
 #### Insult plugin
