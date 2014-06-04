@@ -179,4 +179,18 @@ useless_irc_services:register_service(timer,"timer",self(), node(),SERVER)
 Registers plugin **timer** with a prefix of **"timer"** which can be invoked by `,timer`.
 
 #### Plugin messages
-TODO
+
+Each plugin uses the gen_server behaviour and receives requests from the bot using out-of-band messages. This means that the plugin needs to implement the `handle_info` callback.
+
+The bot sends a **run** request to the plugins in the following tuple format:
+
+```
+{run, Request, Chan, User, From}
+```
+
+- *run* : is an atom to indicate that the bot is requesting the plugin to run a command
+- *Request* : the actual string for the command. For example in the `julia` plugin the Request could be something like `foldl(+,1:10)`
+- *Chan* :
+- *User* : 
+- *From* :
+
