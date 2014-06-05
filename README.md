@@ -190,7 +190,7 @@ The bot sends a **run** request to the plugins in the following tuple format:
 
 - *run* : is an atom to indicate that the bot is requesting the plugin to run a command
 - *Request* : the actual string for the command. For example in the `julia` plugin the Request could be something like `foldl(+,1:10)`
-- *Chan* :
-- *User* : 
-- *From* :
+- *Chan* : is the current channel if the request was made to the channel. When a private message was received for the request, **Chan** is an empty string.
+- *User* : is the current nick that is making the request.
+- *From* : is the pid of the bot, to which responses from the plugins are sent.
 
